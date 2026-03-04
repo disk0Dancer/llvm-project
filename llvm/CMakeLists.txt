@@ -497,6 +497,7 @@ set(LLVM_ALL_TARGETS
   SystemZ
   VE
   WebAssembly
+  Graph
   X86
   XCore
   )

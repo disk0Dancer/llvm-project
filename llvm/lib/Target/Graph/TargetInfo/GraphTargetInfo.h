@@ -1,0 +1,9 @@
+#ifndef LLVM_LIB_TARGET_GRAPH_TARGETINFO_GRAPHTARGETINFO_H
+#define LLVM_LIB_TARGET_GRAPH_TARGETINFO_GRAPHTARGETINFO_H
+
+namespace llvm {
+class Target;
+Target &getTheGraphTarget();
+} // namespace llvm
+
+#endif // LLVM_LIB_TARGET_GRAPH_TARGETINFO_GRAPHTARGETINFO_H

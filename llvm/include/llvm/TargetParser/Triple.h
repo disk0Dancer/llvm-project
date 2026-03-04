@@ -105,7 +105,8 @@ public:
     renderscript32, // 32-bit RenderScript
     renderscript64, // 64-bit RenderScript
     ve,             // NEC SX-Aurora Vector Engine
-    LastArchType = ve
+    graph,          // Graph target for LLVM course
+    LastArchType = graph
   };
   enum SubArchType {
     NoSubArch,
