@@ -1008,6 +1008,9 @@ static Triple::ObjectFormatType getDefaultFormat(const Triple &T) {
 
   case Triple::dxil:
     return Triple::DXContainer;
+
+  case Triple::graph:
+    return Triple::ELF;
   }
   llvm_unreachable("unknown architecture");
 }
@@ -1660,6 +1663,7 @@ unsigned Triple::getArchPointerBitWidth(llvm::Triple::ArchType Arch) {
   case llvm::Triple::dxil:
   case llvm::Triple::hexagon:
   case llvm::Triple::hsail:
+  case llvm::Triple::graph:
   case llvm::Triple::kalimba:
   case llvm::Triple::lanai:
   case llvm::Triple::loongarch32:
@@ -1795,6 +1799,7 @@ Triple Triple::get32BitArchVariant() const {
   case Triple::x86:
   case Triple::xcore:
   case Triple::xtensa:
+  case Triple::graph:
     // Already 32-bit.
     break;
 
@@ -1846,6 +1851,7 @@ Triple Triple::get64BitArchVariant() const {
   case Triple::tcele:
   case Triple::xcore:
   case Triple::xtensa:
+  case Triple::graph:
     T.setArch(UnknownArch);
     break;
 
