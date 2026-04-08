@@ -13,7 +13,7 @@ namespace {
 class GraphELFObjectWriter : public MCELFObjectTargetWriter {
 public:
   GraphELFObjectWriter(bool Is64Bit, uint8_t OSABI)
-      : MCELFObjectTargetWriter(Is64Bit, OSABI, ELF::EM_NONE,
+      : MCELFObjectTargetWriter(Is64Bit, OSABI, ELF::EM_GRAPH,
                                 /*HasRelocationAddend*/ true) {}
 
   ~GraphELFObjectWriter() override = default;
