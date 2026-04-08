@@ -1316,6 +1316,8 @@ StringRef ELFObjectFile<ELFT>::getFileFormatName() const {
       return "elf32-amdgpu";
     case ELF::EM_LOONGARCH:
       return "elf32-loongarch";
+    case ELF::EM_GRAPH:
+      return "elf32-graph";
     case ELF::EM_XTENSA:
       return "elf32-xtensa";
     default:
@@ -1447,6 +1449,9 @@ template <class ELFT> Triple::ArchType ELFObjectFile<ELFT>::getArch() const {
     default:
       report_fatal_error("Invalid ELFCLASS!");
     }
+
+  case ELF::EM_GRAPH:
+    return Triple::graph;
 
   case ELF::EM_XTENSA:
     return Triple::xtensa;
