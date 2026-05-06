@@ -134,6 +134,19 @@ defm SRL : Arithm<0x38, srl>;
 defm SHL : Arithm<0x39, shl>;
 defm UREM: Arithm<0x3a, urem>;
 
+
+// graphics intrinsics
+let hasSideEffects = 1, mayLoad = 0, mayStore = 0 in {
+def GFX_INIT : GraphInst<0xC0, (outs), (ins GPR:$r1, GPR:$r2),
+  "GFX_INIT $r1 $r2", [(int_graph_init GPR:$r1, GPR:$r2)]> { let r3_imm = 0; }
+def GFX_SET_COLOR : GraphInst<0xC1, (outs), (ins GPR:$r1),
+  "GFX_SET_COLOR $r1", [(int_graph_set_color GPR:$r1)]> { let r2 = 0; let r3_imm = 0; }
+def GFX_DRAW_PIXEL : GraphInst<0xC2, (outs), (ins GPR:$r1, GPR:$r2),
+  "GFX_DRAW_PIXEL $r1 $r2", [(int_graph_draw_pixel GPR:$r1, GPR:$r2)]> { let r3_imm = 0; }
+def GFX_FLUSH : GraphInst<0xC3, (outs), (ins),
+  "GFX_FLUSH", [(int_graph_flush)]> { let r1 = 0; let r2 = 0; let r3_imm = 0; }
+}
+
 // abs
 let r3_imm = 0 in
 def ABS : GraphInst<0xAB, (outs GPR:$r1), (ins GPR:$r2), "ABS $r1 $r2", [(set GPR:$r1, (abs GPR:$r2))]>;

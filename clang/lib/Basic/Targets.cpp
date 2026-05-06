@@ -21,6 +21,7 @@
 #include "Targets/BPF.h"
 #include "Targets/CSKY.h"
 #include "Targets/DirectX.h"
+#include "Targets/Graph.h"
 #include "Targets/Hexagon.h"
 #include "Targets/Lanai.h"
 #include "Targets/LoongArch.h"
@@ -122,6 +123,9 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
 
   case llvm::Triple::xcore:
     return std::make_unique<XCoreTargetInfo>(Triple, Opts);
+
+  case llvm::Triple::graph:
+    return std::make_unique<GraphTargetInfo>(Triple, Opts);
 
   case llvm::Triple::hexagon:
     if (os == llvm::Triple::Linux &&
