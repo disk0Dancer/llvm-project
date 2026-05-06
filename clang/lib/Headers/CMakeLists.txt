@@ -4,6 +4,7 @@
 set(core_files
   builtins.h
   float.h
+  graphintrin.h
   inttypes.h
   iso646.h
   limits.h

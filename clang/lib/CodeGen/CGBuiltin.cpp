@@ -6635,6 +6635,8 @@ static Value *EmitTargetArchBuiltinExpr(CodeGenFunction *CGF,
     return CGF->EmitWebAssemblyBuiltinExpr(BuiltinID, E);
   case llvm::Triple::hexagon:
     return CGF->EmitHexagonBuiltinExpr(BuiltinID, E);
+  case llvm::Triple::graph:
+    return CGF->EmitGraphBuiltinExpr(BuiltinID, E);
   case llvm::Triple::riscv32:
   case llvm::Triple::riscv64:
     return CGF->EmitRISCVBuiltinExpr(BuiltinID, E, ReturnValue);
@@ -14165,6 +14167,35 @@ Value *CodeGenFunction::EmitAArch64BuiltinExpr(unsigned BuiltinID,
     return EmitNeonCall(CGM.getIntrinsic(Int, Ty), Ops, "fscale");
   }
   }
+}
+
+
+Value *CodeGenFunction::EmitGraphBuiltinExpr(unsigned BuiltinID,
+                                             const CallExpr *E) {
+  Intrinsic::ID ID;
+  switch (BuiltinID) {
+  default:
+    return nullptr;
+  case Graph::BI__builtin_graph_init:
+    ID = Intrinsic::graph_init;
+    break;
+  case Graph::BI__builtin_graph_set_color:
+    ID = Intrinsic::graph_set_color;
+    break;
+  case Graph::BI__builtin_graph_draw_pixel:
+    ID = Intrinsic::graph_draw_pixel;
+    break;
+  case Graph::BI__builtin_graph_flush:
+    ID = Intrinsic::graph_flush;
+    break;
+  }
+
+  SmallVector<Value *, 4> Ops;
+  for (const Expr *Arg : E->arguments())
+    Ops.push_back(EmitScalarExpr(Arg));
+
+  Function *F = CGM.getIntrinsic(ID);
+  return Builder.CreateCall(F, Ops);
 }
 
 Value *CodeGenFunction::EmitBPFBuiltinExpr(unsigned BuiltinID,

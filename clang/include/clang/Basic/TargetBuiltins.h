@@ -352,6 +352,17 @@ namespace clang {
     bool isFlagSet(uint64_t Flag) const { return Flags & Flag; }
   };
 
+
+  /// Graph builtins
+  namespace Graph {
+  enum {
+    LastTIBuiltin = clang::Builtin::FirstTSBuiltin - 1,
+#define BUILTIN(ID, TYPE, ATTRS) BI##ID,
+#include "clang/Basic/BuiltinsGraph.inc"
+    LastTSBuiltin
+  };
+  } // namespace Graph
+
   /// Hexagon builtins
   namespace Hexagon {
   enum {
