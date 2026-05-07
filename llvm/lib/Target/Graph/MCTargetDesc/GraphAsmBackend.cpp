@@ -30,6 +30,7 @@ public:
     const static MCFixupKindInfo InfosLE[Graph::NumTargetFixupKinds] = {
         // name                  offset  bits  flags
         {"fixup_Graph_PC16", 0, 16, MCFixupKindInfo::FKF_IsPCRel},
+        {"fixup_Graph_16", 0, 16, 0},
     };
 
     if (Kind >= FirstLiteralRelocationKind)
@@ -75,6 +76,9 @@ public:
       Value /= 4;
       NumBytes = 2;
       break;
+    case Graph::fixup_Graph_16:
+      NumBytes = 2;
+      break;
     }
 
     unsigned Offset = Fixup.getOffset();
@@ -94,8 +98,8 @@ public:
 } // end anonymous namespace
 
 MCAsmBackend *llvm::createGraphAsmBackend(const Target &T,
-                                           const MCSubtargetInfo &STI,
-                                           const MCRegisterInfo &MRI,
-                                           const MCTargetOptions &Options) {
+                                          const MCSubtargetInfo &STI,
+                                          const MCRegisterInfo &MRI,
+                                          const MCTargetOptions &Options) {
   return new ELFGraphAsmBackend(T, STI.getTargetTriple().getOS());
 }

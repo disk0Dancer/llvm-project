@@ -7,6 +7,7 @@ namespace llvm {
 namespace Graph {
 enum Fixups {
   fixup_Graph_PC16 = FirstTargetFixupKind,
+  fixup_Graph_16,
   // Marker
   LastTargetFixupKind,
   NumTargetFixupKinds = LastTargetFixupKind - FirstTargetFixupKind
