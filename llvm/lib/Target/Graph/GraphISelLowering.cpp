@@ -1,10 +1,10 @@
 #include "GraphISelLowering.h"
-#include "MCTargetDesc/GraphInfo.h"
 #include "Graph.h"
 #include "GraphMachineFunctionInfo.h"
 #include "GraphRegisterInfo.h"
 #include "GraphSubtarget.h"
 #include "GraphTargetMachine.h"
+#include "MCTargetDesc/GraphInfo.h"
 #include "llvm/CodeGen/CallingConvLower.h"
 #include "llvm/CodeGen/ISDOpcodes.h"
 #include "llvm/CodeGen/MachineFrameInfo.h"
@@ -27,16 +27,16 @@
 using namespace llvm;
 
 static const MCPhysReg ArgGPRs[] = {Graph::R9, Graph::R10, Graph::R11,
-                                     Graph::R12};
+                                    Graph::R12};
 
 void GraphTargetLowering::ReplaceNodeResults(SDNode *N,
-                                              SmallVectorImpl<SDValue> &Results,
-                                              SelectionDAG &DAG) const {
+                                             SmallVectorImpl<SDValue> &Results,
+                                             SelectionDAG &DAG) const {
   llvm_unreachable("");
 }
 
 GraphTargetLowering::GraphTargetLowering(const TargetMachine &TM,
-                                          const GraphSubtarget &STI)
+                                         const GraphSubtarget &STI)
     : TargetLowering(TM), STI(STI) {
   GRAPH_DUMP_RED
   addRegisterClass(MVT::i32, &Graph::GPRRegClass);
@@ -112,7 +112,7 @@ static Align getPrefTypeAlign(EVT VT, SelectionDAG &DAG) {
 }
 
 SDValue GraphTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
-                                        SmallVectorImpl<SDValue> &InVals) const {
+                                       SmallVectorImpl<SDValue> &InVals) const {
   GRAPH_DUMP_RED
   SelectionDAG &DAG = CLI.DAG;
   SDLoc &DL = CLI.DL;
@@ -260,7 +260,7 @@ SDValue GraphTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
   Glue = Chain.getValue(1);
 
   Chain = DAG.getCALLSEQ_END(Chain, DAG.getConstant(NumBytes, DL, PtrVT, true),
-                              DAG.getConstant(0, DL, PtrVT, true), Glue, DL);
+                             DAG.getConstant(0, DL, PtrVT, true), Glue, DL);
   Glue = Chain.getValue(1);
 
   SmallVector<CCValAssign, 16> RVLocs;
@@ -294,8 +294,8 @@ struct ArgDataPair {
 } // end anonymous namespace
 
 static SDValue convertValVTToLocVT(SelectionDAG &DAG, SDValue Val,
-                                    const CCValAssign &VA, const SDLoc &DL,
-                                    const GraphSubtarget &Subtarget) {
+                                   const CCValAssign &VA, const SDLoc &DL,
+                                   const GraphSubtarget &Subtarget) {
   EVT LocVT = VA.getLocVT();
 
   if (VA.getValVT() == MVT::f32)
@@ -315,8 +315,8 @@ static SDValue convertValVTToLocVT(SelectionDAG &DAG, SDValue Val,
 }
 
 static SDValue convertLocVTToValVT(SelectionDAG &DAG, SDValue Val,
-                                    const CCValAssign &VA, const SDLoc &DL,
-                                    const GraphSubtarget &Subtarget) {
+                                   const CCValAssign &VA, const SDLoc &DL,
+                                   const GraphSubtarget &Subtarget) {
   if (VA.getValVT() == MVT::f32)
     llvm_unreachable("");
 
@@ -333,8 +333,8 @@ static SDValue convertLocVTToValVT(SelectionDAG &DAG, SDValue Val,
 }
 
 static SDValue unpackFromRegLoc(SelectionDAG &DAG, SDValue Chain,
-                                 const CCValAssign &VA, const SDLoc &DL,
-                                 const GraphTargetLowering &TLI) {
+                                const CCValAssign &VA, const SDLoc &DL,
+                                const GraphTargetLowering &TLI) {
   MachineFunction &MF = DAG.getMachineFunction();
   MachineRegisterInfo &RegInfo = MF.getRegInfo();
   EVT LocVT = VA.getLocVT();
@@ -351,14 +351,14 @@ static SDValue unpackFromRegLoc(SelectionDAG &DAG, SDValue Chain,
 }
 
 static SDValue unpackFromMemLoc(SelectionDAG &DAG, SDValue Chain,
-                                 const CCValAssign &VA, const SDLoc &DL) {
+                                const CCValAssign &VA, const SDLoc &DL) {
   MachineFunction &MF = DAG.getMachineFunction();
   MachineFrameInfo &MFI = MF.getFrameInfo();
   EVT LocVT = VA.getLocVT();
   EVT ValVT = VA.getValVT();
   EVT PtrVT = MVT::getIntegerVT(DAG.getDataLayout().getPointerSizeInBits(0));
   int FI = MFI.CreateFixedObject(ValVT.getStoreSize(), VA.getLocMemOffset(),
-                                  /*IsImmutable=*/true);
+                                 /*IsImmutable=*/true);
   SDValue FIN = DAG.getFrameIndex(FI, PtrVT);
   SDValue Val;
 
@@ -410,7 +410,7 @@ SDValue GraphTargetLowering::LowerFormalArguments(
 
     if (VA.getLocInfo() == CCValAssign::Indirect) {
       InVals.push_back(DAG.getLoad(VA.getValVT(), DL, Chain, ArgValue,
-                                    MachinePointerInfo()));
+                                   MachinePointerInfo()));
       unsigned ArgIndex = Ins[i].OrigArgIndex;
       unsigned ArgPartOffset = Ins[i].PartOffset;
       assert(ArgPartOffset == 0);
@@ -420,7 +420,7 @@ SDValue GraphTargetLowering::LowerFormalArguments(
         SDValue Offset = DAG.getIntPtrConstant(PartOffset, DL);
         SDValue Address = DAG.getNode(ISD::ADD, DL, PtrVT, ArgValue, Offset);
         InVals.push_back(DAG.getLoad(PartVA.getValVT(), DL, Chain, Address,
-                                      MachinePointerInfo()));
+                                     MachinePointerInfo()));
         ++i;
       }
       continue;
@@ -451,7 +451,7 @@ SDValue GraphTargetLowering::LowerFormalArguments(
 
     if (Idx % 2) {
       MFI.CreateFixedObject(StackSlotSize, VaArgOffset - (int)StackSlotSize,
-                             true);
+                            true);
       VarArgsSaveSize += StackSlotSize;
     }
 
@@ -461,10 +461,9 @@ SDValue GraphTargetLowering::LowerFormalArguments(
       RegInfo.addLiveIn(ArgRegs[I], Reg);
       SDValue ArgValue = DAG.getCopyFromReg(Chain, DL, Reg, MVT::i32);
       FI = MFI.CreateFixedObject(StackSlotSize, VaArgOffset, true);
-      SDValue PtrOff =
-          DAG.getFrameIndex(FI, getPointerTy(DAG.getDataLayout()));
+      SDValue PtrOff = DAG.getFrameIndex(FI, getPointerTy(DAG.getDataLayout()));
       SDValue Store = DAG.getStore(Chain, DL, ArgValue, PtrOff,
-                                    MachinePointerInfo::getFixedStack(MF, FI));
+                                   MachinePointerInfo::getFixedStack(MF, FI));
       cast<StoreSDNode>(Store.getNode())
           ->getMemOperand()
           ->setValue((Value *)nullptr);
@@ -501,10 +500,10 @@ bool GraphTargetLowering::CanLowerReturn(
 
 SDValue
 GraphTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
-                                  bool IsVarArg,
-                                  const SmallVectorImpl<ISD::OutputArg> &Outs,
-                                  const SmallVectorImpl<SDValue> &OutVals,
-                                  const SDLoc &DL, SelectionDAG &DAG) const {
+                                 bool IsVarArg,
+                                 const SmallVectorImpl<ISD::OutputArg> &Outs,
+                                 const SmallVectorImpl<SDValue> &OutVals,
+                                 const SDLoc &DL, SelectionDAG &DAG) const {
   GRAPH_DUMP_RED
   const MachineFunction &MF = DAG.getMachineFunction();
   const GraphSubtarget &STI = MF.getSubtarget<GraphSubtarget>();
@@ -512,7 +511,7 @@ GraphTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
   SmallVector<CCValAssign, 16> RVLocs;
 
   CCState CCInfo(CallConv, IsVarArg, DAG.getMachineFunction(), RVLocs,
-                  *DAG.getContext());
+                 *DAG.getContext());
 
   CCInfo.AnalyzeReturn(Outs, RetCC_Graph);
 
@@ -543,7 +542,7 @@ GraphTargetLowering::LowerReturn(SDValue Chain, CallingConv::ID CallConv,
 //===----------------------------------------------------------------------===//
 
 SDValue GraphTargetLowering::PerformDAGCombine(SDNode *N,
-                                                DAGCombinerInfo &DCI) const {
+                                               DAGCombinerInfo &DCI) const {
   return {};
 }
 
@@ -552,9 +551,9 @@ SDValue GraphTargetLowering::PerformDAGCombine(SDNode *N,
 //===----------------------------------------------------------------------===//
 
 bool GraphTargetLowering::isLegalAddressingMode(const DataLayout &DL,
-                                                  const AddrMode &AM, Type *Ty,
-                                                  unsigned AS,
-                                                  Instruction *I) const {
+                                                const AddrMode &AM, Type *Ty,
+                                                unsigned AS,
+                                                Instruction *I) const {
   GRAPH_DUMP_RED
   if (AM.BaseGV)
     return false;
@@ -605,20 +604,30 @@ SDValue GraphTargetLowering::lowerBR_CC(SDValue Op, SelectionDAG &DAG) const {
         cast<ConstantSDNode>(INC)->getZExtValue() == 1) {
       SDValue CMP = Op.getOperand(3);
       SDValue INCCMP = DAG.getNode(getIsdOpIncCmp(CCVal), ADD,
-                                    DAG.getVTList({MVT::i32, MVT::i32}),
-                                    ADD->getOperand(0), CMP);
+                                   DAG.getVTList({MVT::i32, MVT::i32}),
+                                   ADD->getOperand(0), CMP);
       DAG.ReplaceAllUsesWith(ADD, INCCMP.getValue(1));
       DAG.RemoveDeadNode(ADD.getNode());
       SDValue Block = Op->getOperand(4);
       return DAG.getNode(GraphISD::BR_CC, Op, Op.getValueType(),
-                          Op.getOperand(0), INCCMP.getValue(0), Block);
+                         Op.getOperand(0), INCCMP.getValue(0), Block);
     }
+  }
+
+  SDValue RHS = Op.getOperand(3);
+  if (RHS->getOpcode() == ISD::Constant &&
+      isInt<16>(cast<ConstantSDNode>(RHS)->getSExtValue())) {
+    SDValue INCCMP = DAG.getNode(getIsdOpIncCmp(CCVal), Op,
+                                 DAG.getVTList({MVT::i32, MVT::i32}), ADD, RHS);
+    SDValue Block = Op->getOperand(4);
+    return DAG.getNode(GraphISD::BR_CC, Op, Op.getValueType(), Op.getOperand(0),
+                       INCCMP.getValue(0), Block);
   }
   return Op;
 }
 
 SDValue GraphTargetLowering::LowerOperation(SDValue Op,
-                                              SelectionDAG &DAG) const {
+                                            SelectionDAG &DAG) const {
   switch (Op->getOpcode()) {
   case ISD::BR_CC:
     return lowerBR_CC(Op, DAG);

@@ -62,14 +62,14 @@ public:
 #include "GraphGenMCCodeEmitter.inc"
 
 MCCodeEmitter *llvm::createGraphMCCodeEmitter(const MCInstrInfo &MCII,
-                                               MCContext &Ctx) {
+                                              MCContext &Ctx) {
   return new GraphMCCodeEmitter(MCII, Ctx);
 }
 
 void GraphMCCodeEmitter::encodeInstruction(const MCInst &MI,
-                                            SmallVectorImpl<char> &CB,
-                                            SmallVectorImpl<MCFixup> &Fixups,
-                                            const MCSubtargetInfo &STI) const {
+                                           SmallVectorImpl<char> &CB,
+                                           SmallVectorImpl<MCFixup> &Fixups,
+                                           const MCSubtargetInfo &STI) const {
   uint32_t Bits = getBinaryCodeForInstr(MI, Fixups, STI);
   support::endian::write<uint32_t>(CB, Bits, llvm::endianness::little);
   ++MCNumEmitted;
@@ -77,8 +77,8 @@ void GraphMCCodeEmitter::encodeInstruction(const MCInst &MI,
 
 unsigned
 GraphMCCodeEmitter::getMachineOpValue(const MCInst &MI, const MCOperand &MO,
-                                       SmallVectorImpl<MCFixup> &Fixups,
-                                       const MCSubtargetInfo &STI) const {
+                                      SmallVectorImpl<MCFixup> &Fixups,
+                                      const MCSubtargetInfo &STI) const {
   if (MO.isReg())
     return Ctx.getRegisterInfo()->getEncodingValue(MO.getReg());
   if (MO.isImm())
@@ -89,14 +89,15 @@ GraphMCCodeEmitter::getMachineOpValue(const MCInst &MI, const MCOperand &MO,
   int64_t Res;
   if (Expr->evaluateAsAbsolute(Res))
     return Res;
-  llvm_unreachable("Unhandled expression!");
+  Fixups.push_back(MCFixup::create(
+      0, Expr, static_cast<MCFixupKind>(Graph::fixup_Graph_16)));
   return 0;
 }
 
 unsigned
 GraphMCCodeEmitter::getSImm16OpValue(const MCInst &MI, unsigned OpNo,
-                                      SmallVectorImpl<MCFixup> &Fixups,
-                                      const MCSubtargetInfo &STI) const {
+                                     SmallVectorImpl<MCFixup> &Fixups,
+                                     const MCSubtargetInfo &STI) const {
   const MCOperand &MO = MI.getOperand(OpNo);
   if (MO.isImm())
     return static_cast<unsigned>(MO.getImm());
@@ -106,20 +107,22 @@ GraphMCCodeEmitter::getSImm16OpValue(const MCInst &MI, unsigned OpNo,
   int64_t Res;
   if (Expr->evaluateAsAbsolute(Res))
     return Res;
-  llvm_unreachable("Unhandled expression!");
+  Fixups.push_back(MCFixup::create(
+      0, Expr, static_cast<MCFixupKind>(Graph::fixup_Graph_16)));
   return 0;
 }
 
-unsigned GraphMCCodeEmitter::getBranchTarget16OpValue(
-    const MCInst &MI, unsigned OpNo, SmallVectorImpl<MCFixup> &Fixups,
-    const MCSubtargetInfo &STI) const {
+unsigned
+GraphMCCodeEmitter::getBranchTarget16OpValue(const MCInst &MI, unsigned OpNo,
+                                             SmallVectorImpl<MCFixup> &Fixups,
+                                             const MCSubtargetInfo &STI) const {
   const MCOperand &MO = MI.getOperand(OpNo);
   if (MO.isImm())
     return MO.getImm() / 4;
 
   assert(MO.isExpr());
   const MCExpr *Expr = MO.getExpr();
-  Fixups.push_back(MCFixup::create(0, Expr,
-                   static_cast<MCFixupKind>(Graph::fixup_Graph_PC16)));
+  Fixups.push_back(MCFixup::create(
+      0, Expr, static_cast<MCFixupKind>(Graph::fixup_Graph_PC16)));
   return 0;
 }

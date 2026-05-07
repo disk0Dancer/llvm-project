@@ -1,5 +1,6 @@
-#include "MCTargetDesc/GraphMCTargetDesc.h"
 #include "../Graph.h"
+#include "MCTargetDesc/GraphFixupKinds.h"
+#include "MCTargetDesc/GraphMCTargetDesc.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/MC/MCELFObjectWriter.h"
 #include "llvm/MC/MCExpr.h"
@@ -28,19 +29,26 @@ protected:
 } // namespace
 
 unsigned GraphELFObjectWriter::getRelocType(MCContext &Ctx,
-                                             const MCValue &Target,
-                                             const MCFixup &Fixup,
-                                             bool IsPCRel) const {
+                                            const MCValue &Target,
+                                            const MCFixup &Fixup,
+                                            bool IsPCRel) const {
   MCFixupKind Kind = Fixup.getKind();
   if (Kind >= FirstLiteralRelocationKind)
     return Kind - FirstLiteralRelocationKind;
 
-  llvm_unreachable("Unimplemented fixup -> relocation");
+  switch (Kind) {
+  case Graph::fixup_Graph_PC16:
+    return ELF::R_GRAPH_PC16;
+  case Graph::fixup_Graph_16:
+    return ELF::R_GRAPH_16;
+  default:
+    llvm_unreachable("Unimplemented fixup -> relocation");
+  }
 }
 
 bool GraphELFObjectWriter::needsRelocateWithSymbol(const MCValue &,
-                                                     const MCSymbol &,
-                                                     unsigned Type) const {
+                                                   const MCSymbol &,
+                                                   unsigned Type) const {
   return false;
 }
 

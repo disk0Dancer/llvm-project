@@ -64,6 +64,8 @@ def HI16 : SDNodeXForm<imm, [{
   return CurDAG->getTargetConstant((uint64_t)N->getZExtValue() >> 16, SDLoc(N),
                                    MVT::i32);
 }]>;
+def addr : ComplexPattern<i32, 2, "SelectAddr", [], []>;
+
 //===----------------------------------------------------------------------===//
 // Instructions specific format
 //===----------------------------------------------------------------------===//
@@ -134,6 +136,13 @@ defm SRL : Arithm<0x38, srl>;
 defm SHL : Arithm<0x39, shl>;
 defm UREM: Arithm<0x3a, urem>;
 
+let hasSideEffects = 0, mayLoad = 1, mayStore = 0 in
+def LD : GraphInst<0x40, (outs GPR:$r1), (ins GPR:$r2, simm16:$r3_imm),
+  "LD $r1 $r2 $r3_imm", []>;
+
+let hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
+def ST : GraphInst<0x41, (outs), (ins GPR:$r1, GPR:$r2, simm16:$r3_imm),
+  "ST $r1 $r2 $r3_imm", []>;
 
 // graphics intrinsics
 let hasSideEffects = 1, mayLoad = 0, mayStore = 0 in {
