@@ -23,6 +23,7 @@ BitVector GraphRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   GraphFrameLowering const *TFI = getFrameLowering(MF);
 
   BitVector Reserved(getNumRegs());
+  Reserved.set(Graph::R0);
   Reserved.set(Graph::R1);
 
   if (TFI->hasFP(MF)) {
