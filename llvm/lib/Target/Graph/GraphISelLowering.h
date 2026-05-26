@@ -69,6 +69,7 @@ private:
 
   SDValue LowerOperation(SDValue Op, SelectionDAG &DAG) const override;
   SDValue lowerBR_CC(SDValue Op, SelectionDAG &DAG) const;
+  SDValue lowerSELECT_CC(SDValue Op, SelectionDAG &DAG) const;
   unsigned getIsdOpIncCmp(ISD::CondCode CCVal) const;
 };
 

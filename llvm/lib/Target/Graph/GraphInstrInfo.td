@@ -70,7 +70,8 @@ def addr : ComplexPattern<i32, 2, "SelectAddr", [], []>;
 // Instructions specific format
 //===----------------------------------------------------------------------===//
 
-let hasSideEffects = 0, mayLoad = 0, mayStore = 0 in
+let hasSideEffects = 0, mayLoad = 0, mayStore = 0,
+    Constraints = "$r2 = $r2_" in
 class IncCCi<bits<8> op>
   : GraphInst<op, (outs GPR:$r1, GPR:$r2_), (ins GPR:$r2, simm16:$r3_imm),
               NAME#" $r1 $r2 $r3_imm", []>;
@@ -102,6 +103,25 @@ let isBarrier = 1, isReturn = 1, isTerminator = 1 in
 def PseudoRET : GraphPseudoInst<(outs), (ins), "# PseudoRET",
   [(graph_ret)]>,
   PseudoInstExpansion<(BR R0)>;
+
+def SDT_GraphCallSeqStart : SDCallSeqStart<[ SDTCisVT<0, i32>,
+                                             SDTCisVT<1, i32> ]>;
+def SDT_GraphCallSeqEnd   : SDCallSeqEnd  <[ SDTCisVT<0, i32>,
+                                             SDTCisVT<1, i32> ]>;
+def callseq_start : SDNode<"ISD::CALLSEQ_START", SDT_GraphCallSeqStart,
+                           [SDNPHasChain, SDNPOutGlue]>;
+def callseq_end   : SDNode<"ISD::CALLSEQ_END",   SDT_GraphCallSeqEnd,
+                           [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue]>;
+let Defs = [R1], Uses = [R1] in {
+  def ADJCALLSTACKDOWN : GraphPseudoInst<
+      (outs), (ins i32imm:$amt1, i32imm:$amt2),
+      "# ADJCALLSTACKDOWN $amt1 $amt2",
+      [(callseq_start timm:$amt1, timm:$amt2)]>;
+  def ADJCALLSTACKUP : GraphPseudoInst<
+      (outs), (ins i32imm:$amt1, i32imm:$amt2),
+      "# ADJCALLSTACKUP $amt1 $amt2",
+      [(callseq_end timm:$amt1, timm:$amt2)]>;
+}
 
 let isBranch = 1, isTerminator = 1, r2 = 0 in
 def BR_COND : GraphInst<0xBC, (outs), (ins GPR:$r1, btarget16:$r3_imm),
@@ -136,12 +156,14 @@ defm SRL : Arithm<0x38, srl>;
 defm SHL : Arithm<0x39, shl>;
 defm UREM: Arithm<0x3a, urem>;
 
+// Memory ops live in a separate opcode block to avoid colliding with the
+// immediate-form arithmetic (0x40..0x4A produced by the Arithm multiclass).
 let hasSideEffects = 0, mayLoad = 1, mayStore = 0 in
-def LD : GraphInst<0x40, (outs GPR:$r1), (ins GPR:$r2, simm16:$r3_imm),
+def LD : GraphInst<0x50, (outs GPR:$r1), (ins GPR:$r2, simm16:$r3_imm),
   "LD $r1 $r2 $r3_imm", []>;
 
 let hasSideEffects = 0, mayLoad = 0, mayStore = 1 in
-def ST : GraphInst<0x41, (outs), (ins GPR:$r1, GPR:$r2, simm16:$r3_imm),
+def ST : GraphInst<0x51, (outs), (ins GPR:$r1, GPR:$r2, simm16:$r3_imm),
   "ST $r1 $r2 $r3_imm", []>;
 
 // graphics intrinsics

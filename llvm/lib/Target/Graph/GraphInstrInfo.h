@@ -24,7 +24,13 @@ public:
                            MachineBasicBlock::iterator I, Register SrcReg,
                            bool IsKill, int FI, const TargetRegisterClass *RC,
                            const TargetRegisterInfo *TRI, Register VReg,
-                           MachineInstr::MIFlag Flags) const override {};
+                           MachineInstr::MIFlag Flags) const override;
+
+  void loadRegFromStackSlot(MachineBasicBlock &MBB,
+                            MachineBasicBlock::iterator I, Register DestReg,
+                            int FI, const TargetRegisterClass *RC,
+                            const TargetRegisterInfo *TRI, Register VReg,
+                            MachineInstr::MIFlag Flags) const override;
 };
 
 } // end namespace llvm

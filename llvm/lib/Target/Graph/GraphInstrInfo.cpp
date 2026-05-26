@@ -30,3 +30,25 @@ void GraphInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   }
   llvm_unreachable("can't copyPhysReg");
 }
+
+void GraphInstrInfo::storeRegToStackSlot(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator I, Register SrcReg,
+    bool IsKill, int FI, const TargetRegisterClass *RC,
+    const TargetRegisterInfo *TRI, Register VReg,
+    MachineInstr::MIFlag Flags) const {
+  DebugLoc DL = I != MBB.end() ? I->getDebugLoc() : DebugLoc();
+  BuildMI(MBB, I, DL, get(Graph::ST))
+      .addReg(SrcReg, getKillRegState(IsKill))
+      .addFrameIndex(FI)
+      .addImm(0);
+}
+
+void GraphInstrInfo::loadRegFromStackSlot(
+    MachineBasicBlock &MBB, MachineBasicBlock::iterator I, Register DestReg,
+    int FI, const TargetRegisterClass *RC, const TargetRegisterInfo *TRI,
+    Register VReg, MachineInstr::MIFlag Flags) const {
+  DebugLoc DL = I != MBB.end() ? I->getDebugLoc() : DebugLoc();
+  BuildMI(MBB, I, DL, get(Graph::LD), DestReg)
+      .addFrameIndex(FI)
+      .addImm(0);
+}

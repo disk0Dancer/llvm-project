@@ -1,0 +1,4 @@
+graph-sim
+*.o
+out.ppm
+.omc/

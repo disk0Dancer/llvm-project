@@ -67,8 +67,17 @@ GraphTargetLowering::GraphTargetLowering(const TargetMachine &TM,
   setOperationAction(ISD::UNDEF, MVT::i32, Legal);
 
   setOperationAction(ISD::BR_CC, MVT::i32, Custom);
+  setOperationAction(ISD::SELECT_CC, MVT::i32, Custom);
+  setOperationAction(ISD::SELECT, MVT::i32, Expand);
 
   setOperationAction(ISD::FRAMEADDR, MVT::i32, Legal);
+
+  MaxStoresPerMemcpy = 8192;
+  MaxStoresPerMemcpyOptSize = 8192;
+  MaxStoresPerMemmove = 8192;
+  MaxStoresPerMemmoveOptSize = 8192;
+  MaxStoresPerMemset = 8192;
+  MaxStoresPerMemsetOptSize = 8192;
 }
 
 const char *GraphTargetLowering::getTargetNodeName(unsigned Opcode) const {
@@ -235,7 +244,6 @@ SDValue GraphTargetLowering::LowerCall(TargetLowering::CallLoweringInfo &CLI,
 
   if (GlobalAddressSDNode *S = dyn_cast<GlobalAddressSDNode>(Callee)) {
     const GlobalValue *GV = S->getGlobal();
-    assert(getTargetMachine().shouldAssumeDSOLocal(GV));
     Callee = DAG.getTargetGlobalAddress(GV, DL, PtrVT, 0, 0);
   }
 
@@ -595,35 +603,106 @@ unsigned GraphTargetLowering::getIsdOpIncCmp(ISD::CondCode CCVal) const {
 }
 
 SDValue GraphTargetLowering::lowerBR_CC(SDValue Op, SelectionDAG &DAG) const {
-  SDValue CC = Op.getOperand(1);
-  SDValue ADD = Op.getOperand(2);
+  SDValue Chain = Op.getOperand(0);
+  SDValue CC    = Op.getOperand(1);
+  SDValue LHS   = Op.getOperand(2);
+  SDValue RHS   = Op.getOperand(3);
+  SDValue Block = Op.getOperand(4);
   ISD::CondCode CCVal = cast<CondCodeSDNode>(CC)->get();
-  if (ADD->getOpcode() == ISD::ADD) {
-    SDValue INC = ADD->getOperand(1);
-    if (INC->getOpcode() == ISD::Constant &&
-        cast<ConstantSDNode>(INC)->getZExtValue() == 1) {
-      SDValue CMP = Op.getOperand(3);
-      SDValue INCCMP = DAG.getNode(getIsdOpIncCmp(CCVal), ADD,
+
+
+  switch (CCVal) {
+  case ISD::SETULT: CCVal = ISD::SETLT; break;
+  case ISD::SETULE: CCVal = ISD::SETLE; break;
+  case ISD::SETUGT: CCVal = ISD::SETGT; break;
+  case ISD::SETUGE: CCVal = ISD::SETGE; break;
+  default: break;
+  }
+
+  auto *RhsConst = dyn_cast<ConstantSDNode>(RHS);
+  if (!RhsConst || !isInt<16>(RhsConst->getSExtValue())) {
+    SDLoc DL(Op);
+    ISD::CondCode Signed;
+    switch (CCVal) {
+    case ISD::SETULT: Signed = ISD::SETLT; break;
+    case ISD::SETULE: Signed = ISD::SETLE; break;
+    case ISD::SETUGT: Signed = ISD::SETGT; break;
+    case ISD::SETUGE: Signed = ISD::SETGE; break;
+    default:          Signed = CCVal;      break;
+    }
+    SDValue Diff = DAG.getNode(ISD::SUB, DL, MVT::i32, LHS, RHS);
+    SDValue Zero = DAG.getTargetConstant(0, DL, MVT::i32);
+    SDValue INCCMP = DAG.getNode(getIsdOpIncCmp(Signed), DL,
+                                 DAG.getVTList({MVT::i32, MVT::i32}),
+                                 Diff, Zero);
+    return DAG.getNode(GraphISD::BR_CC, DL, Op.getValueType(), Chain,
+                       INCCMP.getValue(0), Block);
+  }
+  int64_t N = RhsConst->getSExtValue();
+
+  if (LHS.getOpcode() == ISD::ADD) {
+    auto *IncConst = dyn_cast<ConstantSDNode>(LHS.getOperand(1));
+    if (IncConst && IncConst->getZExtValue() == 1) {
+      int64_t adjImm;
+      switch (CCVal) {
+      case ISD::SETLT: adjImm = N - 1; break; // x+1 <  N  ⟺ x <  N-1
+      case ISD::SETLE: adjImm = N - 1; break; // x+1 ≤  N  ⟺ x ≤  N-1
+      case ISD::SETGT: adjImm = N - 1; break; // x+1 >  N  ⟺ x >  N-1
+      case ISD::SETGE: adjImm = N - 1; break; // x+1 ≥  N  ⟺ x ≥  N-1
+      case ISD::SETEQ: adjImm = N - 1; break; // x+1 == N  ⟺ x == N-1
+      case ISD::SETNE: adjImm = N - 1; break; // x+1 != N  ⟺ x != N-1
+      default: return Op;
+      }
+      if (!isInt<16>(adjImm))
+        return Op;
+      SDLoc DL(Op);
+      SDValue NewImm = DAG.getTargetConstant(adjImm, DL, MVT::i32);
+      SDValue INCCMP = DAG.getNode(getIsdOpIncCmp(CCVal), DL,
                                    DAG.getVTList({MVT::i32, MVT::i32}),
-                                   ADD->getOperand(0), CMP);
-      DAG.ReplaceAllUsesWith(ADD, INCCMP.getValue(1));
-      DAG.RemoveDeadNode(ADD.getNode());
-      SDValue Block = Op->getOperand(4);
-      return DAG.getNode(GraphISD::BR_CC, Op, Op.getValueType(),
-                         Op.getOperand(0), INCCMP.getValue(0), Block);
+                                   LHS.getOperand(0), NewImm);
+      DAG.ReplaceAllUsesWith(LHS, INCCMP.getValue(1));
+      DAG.RemoveDeadNode(LHS.getNode());
+      return DAG.getNode(GraphISD::BR_CC, DL, Op.getValueType(), Chain,
+                         INCCMP.getValue(0), Block);
     }
   }
 
-  SDValue RHS = Op.getOperand(3);
-  if (RHS->getOpcode() == ISD::Constant &&
-      isInt<16>(cast<ConstantSDNode>(RHS)->getSExtValue())) {
-    SDValue INCCMP = DAG.getNode(getIsdOpIncCmp(CCVal), Op,
-                                 DAG.getVTList({MVT::i32, MVT::i32}), ADD, RHS);
-    SDValue Block = Op->getOperand(4);
-    return DAG.getNode(GraphISD::BR_CC, Op, Op.getValueType(), Op.getOperand(0),
-                       INCCMP.getValue(0), Block);
+  SDValue INCCMP = DAG.getNode(getIsdOpIncCmp(CCVal), Op,
+                               DAG.getVTList({MVT::i32, MVT::i32}), LHS, RHS);
+  return DAG.getNode(GraphISD::BR_CC, Op, Op.getValueType(), Chain,
+                     INCCMP.getValue(0), Block);
+}
+
+SDValue GraphTargetLowering::lowerSELECT_CC(SDValue Op,
+                                            SelectionDAG &DAG) const {
+  SDValue LHS = Op.getOperand(0);
+  SDValue RHS = Op.getOperand(1);
+  SDValue TV  = Op.getOperand(2);
+  SDValue FV  = Op.getOperand(3);
+  ISD::CondCode CC = cast<CondCodeSDNode>(Op.getOperand(4))->get();
+  SDLoc DL(Op);
+
+  ISD::CondCode S;
+  switch (CC) {
+  case ISD::SETULT: S = ISD::SETLT; break;
+  case ISD::SETULE: S = ISD::SETLE; break;
+  case ISD::SETUGT: S = ISD::SETGT; break;
+  case ISD::SETUGE: S = ISD::SETGE; break;
+  default:          S = CC;          break;
   }
-  return Op;
+
+  SDValue Diff = DAG.getNode(ISD::SUB, DL, MVT::i32, LHS, RHS);
+  SDValue Zero = DAG.getConstant(0, DL, MVT::i32);
+  SDValue Inc  = DAG.getNode(getIsdOpIncCmp(S), DL,
+                             DAG.getVTList({MVT::i32, MVT::i32}), Diff, Zero);
+  SDValue Flag = Inc.getValue(0);
+  SDValue ZeroC = DAG.getConstant(0, DL, MVT::i32);
+  SDValue Mask = DAG.getNode(ISD::SUB, DL, MVT::i32, ZeroC, Flag);
+  SDValue MinusOne = DAG.getAllOnesConstant(DL, MVT::i32);
+  SDValue NotMask = DAG.getNode(ISD::XOR, DL, MVT::i32, Mask, MinusOne);
+  SDValue A = DAG.getNode(ISD::AND, DL, MVT::i32, Mask, TV);
+  SDValue B = DAG.getNode(ISD::AND, DL, MVT::i32, NotMask, FV);
+  return DAG.getNode(ISD::OR, DL, MVT::i32, A, B);
 }
 
 SDValue GraphTargetLowering::LowerOperation(SDValue Op,
@@ -631,6 +710,8 @@ SDValue GraphTargetLowering::LowerOperation(SDValue Op,
   switch (Op->getOpcode()) {
   case ISD::BR_CC:
     return lowerBR_CC(Op, DAG);
+  case ISD::SELECT_CC:
+    return lowerSELECT_CC(Op, DAG);
   default:
     llvm_unreachable("");
   }

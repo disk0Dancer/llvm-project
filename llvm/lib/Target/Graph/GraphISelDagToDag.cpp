@@ -104,7 +104,7 @@ bool GraphDAGToDAGISel::SelectAddr(SDValue Addr, SDValue &Base,
       int64_t Imm = CN->getSExtValue();
       if (isInt<16>(Imm)) {
         Base = LHS;
-        Offset = CurDAG->getTargetConstant(Imm, DL, MVT::i32);
+        Offset = CurDAG->getSignedTargetConstant(Imm, DL, MVT::i32);
         return true;
       }
     }
@@ -158,6 +158,15 @@ void GraphDAGToDAGISel::Select(SDNode *Node) {
   switch (Opcode) {
   default:
     break;
+  case ISD::FrameIndex: {
+    auto *FI = cast<FrameIndexSDNode>(Node);
+    SDValue TFI = CurDAG->getTargetFrameIndex(FI->getIndex(), MVT::i32);
+    SDNode *Res = CurDAG->getMachineNode(
+        Graph::ADDI, DL, MVT::i32,
+        {TFI, CurDAG->getTargetConstant(0, DL, MVT::i32)});
+    ReplaceNode(Node, Res);
+    return;
+  }
   case ISD::GlobalAddress: {
     auto *GA = cast<GlobalAddressSDNode>(Node);
     SDNode *Res = CurDAG->getMachineNode(
